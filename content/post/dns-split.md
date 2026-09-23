@@ -2,6 +2,7 @@
 title: "oxidns + mihomo 做家庭 DNS 分流：配置文件详解"
 date: 2026-09-18T19:00:00+08:00
 draft: false
+comments: true
 section: "post"
 tags:
   - dns
