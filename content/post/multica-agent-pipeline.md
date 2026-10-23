@@ -151,7 +151,7 @@ PR 和 issue 的关联规则要记牢，写错了不会报错，只是不关联�
 | D3 对外契约 | `02-contracts` |
 | D4 判据 | `03-acceptance` |
 
-一个 issue 最多一条设计 PR，分支叫 `design/TSI-<n>`。D0 是待决事项，写成同一 PR 里 `status: proposed` 的 ADR；方向只由人工 merge 裁定，agent 没有合并权限。只有 D0 会让实现停工；D1 到 D4 边改边做，被拒就在同一个 issue 返工。设计 PR 没合入不影响开发和代码合并，但 issue 的 done 要等它合并。实现细化不写、不登记，也不写「无设计影响」这种占位。
+一个 issue 最多一条设计 PR，分支叫 `design/TSI-<n>`。D0 是待决事项，写成同一 PR 里 `status: proposed` 的 ADR；方向只由人工 merge 裁定，agent 没有合并权限。在已经开始的开发单上，只有 D0 会让实现停工；D1 到 D4 边改边做，被拒就在同一个 issue 返工。这类 D1 到 D4 的设计 PR 没合入，不影响这张开发单的开发和代码合并，但 issue 的 done 要等它合并。实现细化不写、不登记，也不写「无设计影响」这种占位。
 
 审阅只有两道：1 名 scope 审阅人和一次人工 merge。`01-scope` 和 `02-contracts` 交给 Vulcan 或 Vexel，`03-acceptance` 交给 Verity，新功能的目标、边界和 ADR 交给 Aureus；审阅人给出 `REVIEW_PASSED`，只评论，不改分支。设计 PR 的正文固定四节：语义变更、依据与取舍、影响面、待确认点。
 
@@ -194,7 +194,7 @@ Git 集成只对自托管版开放，Cloud 版没有。服务端要开两个设�
 
 Gitea 侧要注册两类 webhook：Pull Request 和 Commit Status，投递请求带 HMAC 签名（X-Gitea-Signature），服务端拿存好的 secret 逐条校验。注册完之后，PR 从打开、关闭到合并的状态变化，以及草稿状态，都会同步过来，CI checks 的 passed、failed、pending 也显示在卡片上。Gitea 这边给的 token 只要有读权限就够。
 
-设计仓那一侧接的是同一套机制：Gitea 的 PR 事件由组织级 webhook 送给 design AI 审查（Radian），它把审查结论写成 `design-review` 的 commit status 和一条 PR 评论。这套自动审查目前还没接入，设计仓当前的实际门禁见上一章。
+设计仓那一侧的自动审查也走这套机制：Gitea 的 PR 事件由组织级 webhook 送给 design AI 审查（Radian），它把审查结论写成 `design-review` 的 commit status 和一条 PR 评论。这套自动审查目前还没接入，设计仓当前的实际门禁见上一章。
 
 agent 开 PR 不需要在 Multica 里配任何 provider 信息。它用的是 daemon 宿主机的 git 凭据，SSH deploy key 或者 credential helper 都行，能 push 就能开 PR。
 
