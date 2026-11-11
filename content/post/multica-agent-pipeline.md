@@ -219,7 +219,7 @@ Job 的形状来自必选 ConfigMap `foreman-job-template`（`deploy/25-job-temp
 
 从模板和这次运行自己的 pod 能读出 Job 的形状：namespace `multica-agents`；容器以 `dumb-init` 启动 `multica daemon start --foreground --profile foreman-job`；`MULTICA_SERVER_URL` 写死为 `http://foreman.foreman.svc.cluster.local:8080`，也就是 Job 直接连 Foreman，不直连 server；`MULTICA_DAEMON_ID` 取自 pod 标签 `foreman.tsic.top/daemon-id`；`MULTICA_AGENT_RUNTIME_NAME` 是 `foreman-job`；`MULTICA_DAEMON_MAX_CONCURRENT_TASKS` 是 1，即一个 pod 同时只跑一个任务。pod 里没有挂 service account token，`/var/run/secrets/kubernetes.io/serviceaccount` 不存在，agent 拿不到集群 API 凭证。
 
-Job 名和身份名分开：这次运行所在的 Job 用了可读格式 `fm-tsi-3533-astra-a776dfc7f30b`，pod 名再加 Kubernetes 的 5 位后缀，就是前面看到的 `fm-tsi-3533-astra-a776dfc7f30b-qpmnr`。身份名始终是 `fm-<task_id>`，由标签带进容器。
+这次运行的 pod 名是可读格式，形状与模板注释里建议的 `fm-<issue-segment>-<agent-segment>-<task-key>` 一致：`fm-tsi-3533-astra-a776dfc7f30b-qpmnr` 里 issue 段、agent 段、task-key 分别是 `tsi-3533`、`astra` 和 task id 的末段，末尾五位是 Kubernetes 给 pod 的后缀。仓库自带的参考模板写的是 `fm-<task_id>`，所以线上模板被换过；换成了什么、Job 对象长什么样，从 pod 内读不到。身份名不随显示格式变：容器里的 `MULTICA_DAEMON_ID` 始终是 `fm-<task_id>`。
 
 server 那边看到的 daemon 身份是 `foreman-f311e8ff-e026-4c6e-b267-dcc004f08782`，也就是 `foreman-<workspace_id>`；仓库清单里 `FOREMAN_DAEMON_ID` 的默认值是 `foreman`，而在发现形态下，每个 workspace 的身份由 base 加 `-` 加 workspace id 派生（`internal/workspace/workspace.go:327-343`）。线上 Deployment 实际用的是哪种形态、env 怎么组合，读不到，所以这里只写两边各自能观测到的值。
 
