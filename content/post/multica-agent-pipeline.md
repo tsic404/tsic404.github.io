@@ -41,7 +41,7 @@ $ multica daemon status --output json | jq '{profile,daemon_id,server_url,runnin
 
 Multica 是一个把 issue 派给 AI 编码 agent 的平台。issue 是工作容器，agent 接单、报告、交付，所有过程记录在 issue 里。平台以 source-available 方式发布，许可是 Multica License：Apache-2.0 的正文加 Part I 的附加条件；Part I 第 1(a) 条写明内部使用（含多个 workspace）不需要商业许可。支持自托管，模型和 CLI 都能换。GitHub 上 `multica-ai/multica` 在 2026-11-10 15:22:13 UTC 读到 55,544 stars、7,334 forks、6,122 commits；同一天 14:52 UTC 那次读数是 55,539、7,333，半小时涨了五个 star、一个 fork。这类指标是秒级计数器，写下来只能算某个时刻的快照。
 
-版本节奏也能当参考。官方 release 从 v0.6.2（2026-10-13）到 v0.8.2（2026-11-10），28 天发了 10 个。本文引用的功能、行号和数字都取 2026-11-10 的快照，照着做之前建议回原文核对一遍。
+版本节奏也能当参考。官方 release 从 v0.6.2（2026-10-13）到 v0.8.2（2026-11-10），28 天发了 10 个。除本次运行的 pod 读数外，本文引用的功能、行号和数字都取 2026-11-10 的快照，照着做之前建议回原文核对一遍。
 
 下面先讲平台的核心对象和一次运行的链路，再讲我们的五类单据、双仓协作和真实部署拓扑，最后把规则和出处列成一张表。
 
@@ -219,7 +219,7 @@ Job 的形状来自必选 ConfigMap `foreman-job-template`（`deploy/25-job-temp
 
 从模板和这次运行自己的 pod 能读出 Job 的形状：namespace `multica-agents`；容器以 `dumb-init` 启动 `multica daemon start --foreground --profile foreman-job`；`MULTICA_SERVER_URL` 写死为 `http://foreman.foreman.svc.cluster.local:8080`，也就是 Job 直接连 Foreman，不直连 server；`MULTICA_DAEMON_ID` 取自 pod 标签 `foreman.tsic.top/daemon-id`；`MULTICA_AGENT_RUNTIME_NAME` 是 `foreman-job`；`MULTICA_DAEMON_MAX_CONCURRENT_TASKS` 是 1，即一个 pod 同时只跑一个任务。pod 里没有挂 service account token，`/var/run/secrets/kubernetes.io/serviceaccount` 不存在，agent 拿不到集群 API 凭证。
 
-这次运行的 pod 名是可读格式，形状与模板注释里建议的 `fm-<issue-segment>-<agent-segment>-<task-key>` 一致：`fm-tsi-3533-astra-a776dfc7f30b-qpmnr` 里 issue 段、agent 段、task-key 分别是 `tsi-3533`、`astra` 和 task id 的末段，末尾五位是 Kubernetes 给 pod 的后缀。仓库自带的参考模板写的是 `fm-<task_id>`，所以线上模板被换过；换成了什么、Job 对象长什么样，从 pod 内读不到。身份名不随显示格式变：容器里的 `MULTICA_DAEMON_ID` 始终是 `fm-<task_id>`。
+这次运行的 pod 名是可读格式，形状与模板注释里建议的 `fm-<issue-segment>-<agent-segment>-<task-key>` 一致：`fm-tsi-3533-astra-a776dfc7f30b-qpmnr` 里 issue 段、agent 段、task-key 分别是 `tsi-3533`、`astra` 和 task id 的末段，末尾五位是 Kubernetes 给 pod 的后缀。仓库自带的参考模板写的是 `fm-<task_id>`，和这里的 pod 名不一致；线上模板实际写成什么、Job 对象长什么样，从 pod 内读不到。身份名不随显示格式变：容器里的 `MULTICA_DAEMON_ID` 始终是 `fm-<task_id>`。
 
 server 那边看到的 daemon 身份是 `foreman-f311e8ff-e026-4c6e-b267-dcc004f08782`，也就是 `foreman-<workspace_id>`；仓库清单里 `FOREMAN_DAEMON_ID` 的默认值是 `foreman`，而在发现形态下，每个 workspace 的身份由 base 加 `-` 加 workspace id 派生（`internal/workspace/workspace.go:327-343`）。线上 Deployment 实际用的是哪种形态、env 怎么组合，读不到，所以这里只写两边各自能观测到的值。
 
