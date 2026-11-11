@@ -43,7 +43,7 @@ Multica 是一个把 issue 派给 AI 编码 agent 的平台。issue 是工作容
 
 版本节奏也能当参考。官方 release 从 v0.6.2（2026-10-13）到 v0.8.2（2026-11-10），28 天发了 10 个。除本次运行的 pod 读数外，本文引用的功能、行号和数字都取 2026-11-10 的快照，照着做之前建议回原文核对一遍。
 
-下面先讲平台的核心对象和一次运行的链路，再讲我们的五类单据、双仓协作和真实部署拓扑，最后把规则和出处列成一张表。
+下面先讲平台的核心对象和一次运行的链路，再讲状态与 property 的分工、我们的五类单据、双仓协作和真实部署拓扑，最后把规则和出处列成一张表。
 
 ## 核心对象和一次运行的完整链路
 
@@ -77,7 +77,7 @@ Multica 的模型是一条链：Issue → Agent → Run → Runtime → 回写 I
 
 平台不内置模型。它驱动的是已经装好并登录的 AI 编码 CLI；官方文档的对照表列了 29 种，包括 Claude Code、Codex、Kimi CLI；同一页顶部的计数器显示 `Matching tools: 28 of 28`，差的那个是 ZCode，它只在文档表格里，页面的选择器组件没收录（`providers.mdx` 表格与 `provider-picker-demo.tsx` 的 `TOOLS` 数组）。
 
-服务端本身是 Go 后端（`server/go.mod` 里 go 1.26.9）、Next.js 前端（`pnpm-workspace.yaml:41` 是 next ^16.4.5）、PostgreSQL 加 pgvector（`docker-compose.selfhost.yml:37` 用 `pgvector/pgvector:pg17`）。我们这台服务器自报 v0.8.2，commit `b7f8efc`，`/health` 返回 pid 1 和 `started_at`（12:37Z 前后）。这些公开接口看不出部署方式；部署见后面的拓扑章。
+服务端本身是 Go 后端（`server/go.mod` 里 go 1.26.9）、Next.js 前端（`pnpm-workspace.yaml:40` 是 next ^16.4.5）、PostgreSQL 加 pgvector（`docker-compose.selfhost.yml:37` 用 `pgvector/pgvector:pg17`）。我们这台服务器自报 v0.8.2，commit `b7f8efc`，`/health` 返回 pid 1 和 `started_at`（12:37Z 前后）。这些公开接口看不出部署方式；部署见后面的拓扑章。
 
 ## issue 的状态由谁翻
 
@@ -111,7 +111,7 @@ status 表示大阶段（在做、待审、完成），property 记录流程走�
 
 平台给的是通用对象，流程得自己搭。这一章讲我们工作区自己定的五类单据、阶段序列和门禁；平台负责的是 issue、状态、property 这些通用对象。
 
-先说触发。让一个 issue 产生 run 的入口有五种（`tasks.mdx:26-32`）：把它指派给 agent 或 squad；在评论里 mention 一个 agent；在 Chat 里给 agent 发消息；Autopilot 按 schedule 或外部事件触发；issue wakeup 按事件、时间或条件触发。五种入口给的上下文不同，执行路径一样：平台创建 run，runtime 认领，再调起 agent 配置的 AI 编码工具（`tasks.mdx:34`）。指派和 mention 在官方文档里是张对照表：mention 不改 assignee，也不改状态，只针对触发它的那条评论（`mentioning-agents.mdx:10,16-20`）。
+让一个 issue 产生 run 的入口有五种（`tasks.mdx:26-32`）：把它指派给 agent 或 squad；在评论里 mention 一个 agent；在 Chat 里给 agent 发消息；Autopilot 按 schedule 或外部事件触发；issue wakeup 按事件、时间或条件触发。五种入口给的上下文不同，执行路径一样：平台创建 run，runtime 认领，再调起 agent 配置的 AI 编码工具（`tasks.mdx:34`）。指派和 mention 在官方文档里是张对照表：mention 不改 assignee，也不改状态，针对触发它的那条评论（同一批合并进来的评论算在一起）（`mentioning-agents.mdx:10,16-20`）。
 
 阶段的真相源是 issue 上的 multi_select property。每个流程一张，选项按顺序排开；第一个选项「起始」只标类型，不推进。
 
@@ -241,9 +241,9 @@ agent 开 PR 不需要在 Multica 里配 provider：它在 runtime 上 checkout 
 
 | 规则 | 出处 |
 |---|---|
-| 评论正文先写文件，再用 `--content-file` 传；不用内联内容，不把 heredoc 和其他参数混用；临时文件放工作目录，不放 `/tmp` | runtime brief「Comment Formatting」（`AGENTS.md:115-117`）；`cli.mdx:124-125,140-141`；上游 `multica-ai/multica#4182`。brief 里引的 `MUL-2904`、`MUL-4252` 是 Multica 自家 tracker 的编号，不是 GitHub issue |
+| 评论正文先写文件，再用 `--content-file` 传；不用内联内容，不把 heredoc 和其他参数混用；临时文件放工作目录，不放 `/tmp` | runtime brief「Comment Formatting」；`cli.mdx:124-125,140-141`；上游 `multica-ai/multica#4182`。brief 里引的 `MUL-2904`、`MUL-4252` 是 Multica 自家 tracker 的编号，不是 GitHub issue |
 | turn 一结束，还在后台的工作变成孤儿，结果丢失，最终评论也发不出去 | runtime brief「Background Task Safety」（`AGENTS.md:8-14`） |
-| mention 一个 agent 等于给它排一次 run；只是通知人就别用 mention | `mentioning-agents.mdx:10`；runtime brief「Mentions」（`AGENTS.md:190-198`） |
+| mention 一个 agent 等于给它排一次 run；只是通知人就别用 mention | `mentioning-agents.mdx:10`；runtime brief「Mentions」 |
 | PR 关联：标题或分支名带 issue 标识，或者正文在关闭关键词后紧跟标识；正文裸提及不关联，commit message 和 PR 评论也不触发 | `vcs-integration.mdx:107`；`github-integration.mdx:69-77` |
 | leader 派发完不等于父 issue 完成；派发轮结束时父 issue 是 `in_progress`，目标达成才推 `in_review` | `squads.mdx:51`；`issues.mdx:96,101-102` |
 | 子 issue 按 stage 分批，最早未完成 stage 全部 done 或 cancelled 才通知并唤醒父 issue | `issues.mdx:145` |
@@ -265,5 +265,3 @@ agent 开 PR 不需要在 Multica 里配 provider：它在 runtime 上 checkout 
 | rffmpeg-design | `57e2027` | 30 | +651 / -3846 |
 
 五个仓一共删掉 4 万多行，加回来不到 5 千行。现在的设计仓规范把判据固定下来：文档集合只有 4 份加 ADR，被删的路径永久禁止回流；判断一段文字该不该进设计仓，只问删掉实现之后它还能不能驱动一次重写、实现重构之后它是否必须跟着改。
-
-平台的功能细节和数字都取自 2026-11-10 的快照，release 还在继续发，真要照着做，建议回原文核对一遍。
